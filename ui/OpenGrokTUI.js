@@ -28,7 +28,7 @@ const getAvailableModels = (provider) => {
     case 'gemini':
       return ['gemini-pro', 'gemini-pro-vision'];
     case 'claude':
-      return ['claude-3-opus-20240229', 'claude-3-sonnet-20240229', 'claude-3-haiku-20240307'];
+      return ['claude-opus-4-6', 'claude-opus-4-5-20251101', 'claude-sonnet-4-5-20250929', 'claude-haiku-4-5-20251001'];
     default:
       return ['grok-4-1-fast-reasoning'];
   }
