@@ -1,0 +1,73 @@
+{
+  "name": "gitforked",
+  "version": "0.69.0-beta",
+  "description": "A Grok-powered CLI for developers who give a fork",
+  "type": "module",
+  "main": "src/index.js",
+  "bin": {
+    "gitforked": "./src/index.js"
+  },
+  "scripts": {
+    "start": "node src/index.js",
+    "tui": "tsx src/index.js chat --tui",
+    "dev": "tsx --watch src/index.js",
+    "test": "npm run test:unit && npm run test:integration",
+    "test:unit": "mocha test/*.test.js",
+    "test:integration": "mocha test/integration/**/*.test.js",
+    "test:watch": "mocha --watch test/**/*.test.js",
+    "build": "echo 'Build complete'",
+    "lint": "echo 'Lint complete'"
+  },
+  "keywords": [
+    "cli",
+    "ai",
+    "coding",
+    "grok",
+    "xai",
+    "terminal",
+    "tui"
+  ],
+  "author": "highAsFork",
+  "license": "MIT",
+  "dependencies": {
+    "@anthropic-ai/sdk": "^0.73.0",
+    "@google/generative-ai": "^0.24.1",
+    "@types/react": "^19.2.13",
+    "axios": "^1.6.0",
+    "blessed": "^0.1.81",
+    "blessed-contrib": "^4.11.0",
+    "chalk": "^5.3.0",
+    "child_process": "^1.0.2",
+    "clear": "^0.1.0",
+    "commander": "^11.1.0",
+    "dotenv": "^16.3.0",
+    "figlet": "^1.5.0",
+    "fs-extra": "^11.2.0",
+    "glob": "^13.0.1",
+    "ink": "^6.6.0",
+    "ink-box": "^1.0.0",
+    "ink-confirm-input": "^2.0.0",
+    "ink-multi-select": "^2.0.0",
+    "ink-select-input": "^6.2.0",
+    "ink-spinner": "^5.0.0",
+    "ink-text-input": "^6.0.0",
+    "inquirer": "^9.2.0",
+    "keypress": "^0.2.1",
+    "ora": "^7.0.0",
+    "os": "^0.1.1",
+    "path": "^0.12.7",
+    "prismjs": "^1.30.0",
+    "react": "^19.2.4",
+    "typescript": "^5.9.3",
+    "util": "^0.12.5"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.32",
+    "chai": "^6.2.2",
+    "mocha": "^11.7.5",
+    "tsx": "^4.21.0"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

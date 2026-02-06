@@ -1,0 +1,43 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# Config files with secrets
+.env
+.env.local
+.env.*.local
+*.pem
+*.key
+
+# User config (contains API keys)
+.gitforked/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+
+# Build output
+dist/
+build/
+*.tgz
+
+# Test coverage
+coverage/
+.nyc_output/
+
+# Temp files
+tmp/
+temp/
+*.tmp

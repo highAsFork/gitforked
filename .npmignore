@@ -1,0 +1,17 @@
+# Dev files
+test/
+*.test.js
+.github/
+.editorconfig
+.gitignore
+CONTRIBUTING.md
+EXAMPLES.md
+
+# IDE
+.idea/
+.vscode/
+
+# Misc
+*.log
+coverage/
+.nyc_output/

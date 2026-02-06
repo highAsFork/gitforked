@@ -1,0 +1,26 @@
+{
+  "name": "opengrok-tests",
+  "version": "1.0.0",
+  "description": "Test suite for OpenGrok CLI",
+  "main": "index.js",
+  "scripts": {
+    "test": "mocha --require @babel/register --recursive",
+    "test:watch": "mocha --require @babel/register --watch --recursive",
+    "coverage": "nyc mocha --require @babel/register --recursive"
+  },
+  "devDependencies": {
+    "@babel/core": "^7.20.0",
+    "@babel/register": "^7.20.0",
+    "chai": "^4.3.7",
+    "mocha": "^10.2.0",
+    "nyc": "^15.1.0"
+  },
+  "keywords": [
+    "test",
+    "cli",
+    "grok",
+    "opencode"
+  ],
+  "author": "OpenGrok Team",
+  "license": "MIT"
+}
