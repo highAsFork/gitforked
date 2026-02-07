@@ -7,6 +7,7 @@ import { OllamaProvider } from '../lib/ollama-provider.js';
 import { AgentSidebar } from './components/agent-sidebar.js';
 import { TeamSetupDialog } from './dialogs/team-setup-dialog.js';
 import { AgentConfigDialog } from './dialogs/agent-config-dialog.js';
+import { ResponseFileWriter } from '../lib/response-file-writer.js';
 import { Theme } from './styles/theme.js';
 
 const SPINNER_FRAMES = ['⠋', '⠙', '⠹', '⠸', '⠼', '⠴', '⠦', '⠧', '⠇', '⠏'];
@@ -54,6 +55,7 @@ class AgentTeamsTUI {
     this.ollamaProvider = new OllamaProvider(config.getOllamaBaseUrl());
 
     this.currentDir = process.cwd();
+    this.fileWriter = new ResponseFileWriter(this.currentDir);
     this.activeView = 'team-channel'; // 'team-channel' or agent ID
     this.totalCost = 0;
     this.commandHistory = [];
@@ -401,6 +403,11 @@ class AgentTeamsTUI {
         for (const line of formatted) {
           this.chatPanel.log(`  ${line}`);
         }
+        // Auto-write any files found in the response
+        const written = this.fileWriter.processResponse(cleanResponse, this.currentDir);
+        if (written.length > 0) {
+          this.chatPanel.log(`  {green-fg}[Wrote ${written.length} file(s): ${written.join(', ')}]{/}`);
+        }
         this.chatPanel.log('');
       }
       this.render();
@@ -577,6 +584,11 @@ class AgentTeamsTUI {
       const formatted = this.formatForChat(cleanResponse);
       for (const line of formatted) {
         this.chatPanel.log(`  ${line}`);
+      }
+      // Auto-write any files found in the response
+      const written = this.fileWriter.processResponse(cleanResponse, this.currentDir);
+      if (written.length > 0) {
+        this.chatPanel.log(`  {green-fg}[Wrote ${written.length} file(s): ${written.join(', ')}]{/}`);
       }
       this.chatPanel.log('');
     } catch (error) {
