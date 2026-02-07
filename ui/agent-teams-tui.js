@@ -381,9 +381,8 @@ class AgentTeamsTUI {
 
     this.teamChannel.on('agent-thinking', (agent) => {
       this.sidebar.updateAgentList(this.teamManager.getAgents());
-      if (this.activeView === 'team-channel') {
-        this.chatPanel.log(`{yellow-fg}*{/} {bold}${agent.name}{/} {gray-fg}is thinking...{/}`);
-      }
+      // Update spinner to show which agent is working
+      this.currentSpinnerMessage = `${agent.name} is thinking...`;
       this.render();
     });
 
