@@ -199,10 +199,10 @@ class AgentTeamsTUI {
       this.historyIndex = this.commandHistory.length;
       this.inputBox.clearValue();
       this.render();
-      // Process the message then re-enter input mode
-      this.handleInput(input).then(() => {
-        this._focusInput();
-      });
+      // Re-enter readInput immediately so keystrokes are captured during async processing
+      this._focusInput();
+      // Process the message in background
+      this.handleInput(input).catch(() => {});
     } else {
       // Empty input — just re-enter input mode
       this._focusInput();
@@ -389,12 +389,17 @@ class AgentTeamsTUI {
     this.teamChannel.on('agent-responded', (agent, response) => {
       this.sidebar.updateAgentList(this.teamManager.getAgents());
       if (this.activeView === 'team-channel') {
+        const [cleanResponse, cost] = this.stripTokenFooter(response);
+        if (cost > 0) {
+          this.totalCost += cost;
+          this.updateHeader();
+        }
         const colorIndex = this.getAgentColorIndex(agent);
         const color = AGENT_COLORS[colorIndex];
         this.chatPanel.log(`{${color}-fg}{bold}${agent.name}{/} {gray-fg}(${agent.role || agent.provider}){/}`);
-        const lines = response.split('\n');
-        for (const line of lines) {
-          this.chatPanel.log(`  ${this.escapeContent(line)}`);
+        const formatted = this.formatForChat(cleanResponse);
+        for (const line of formatted) {
+          this.chatPanel.log(`  ${line}`);
         }
         this.chatPanel.log('');
       }
@@ -459,9 +464,10 @@ class AgentTeamsTUI {
         const colorIndex = agent ? this.getAgentColorIndex(agent) : 0;
         const color = AGENT_COLORS[colorIndex];
         this.chatPanel.log(`{${color}-fg}{bold}${msg.agentName}{/} {gray-fg}(${msg.role || ''}){/}`);
-        const lines = msg.content.split('\n');
-        for (const line of lines) {
-          this.chatPanel.log(`  ${this.escapeContent(line)}`);
+        const [clean] = this.stripTokenFooter(msg.content);
+        const formatted = this.formatForChat(clean);
+        for (const line of formatted) {
+          this.chatPanel.log(`  ${line}`);
         }
       }
       this.chatPanel.log('');
@@ -482,10 +488,11 @@ class AgentTeamsTUI {
       if (msg.role === 'user') {
         this.chatPanel.log(`{bold}{cyan-fg}You:{/} ${this.escapeContent(msg.content)}`);
       } else {
+        const [clean] = this.stripTokenFooter(msg.content);
         this.chatPanel.log(`{bold}{green-fg}${agent.name}:{/}`);
-        const lines = msg.content.split('\n');
-        for (const line of lines) {
-          this.chatPanel.log(`  ${this.escapeContent(line)}`);
+        const formatted = this.formatForChat(clean);
+        for (const line of formatted) {
+          this.chatPanel.log(`  ${line}`);
         }
       }
       this.chatPanel.log('');
@@ -561,14 +568,17 @@ class AgentTeamsTUI {
       this.sidebar.updateAgentList(this.teamManager.getAgents());
       this.stopSpinner(true);
 
+      const [cleanResponse, cost] = this.stripTokenFooter(response);
+      if (cost > 0) {
+        this.totalCost += cost;
+        this.updateHeader();
+      }
       this.chatPanel.log(`{bold}{green-fg}${agent.name}:{/}`);
-      const lines = response.split('\n');
-      for (const line of lines) {
-        this.chatPanel.log(`  ${this.escapeContent(line)}`);
+      const formatted = this.formatForChat(cleanResponse);
+      for (const line of formatted) {
+        this.chatPanel.log(`  ${line}`);
       }
       this.chatPanel.log('');
-
-      this.extractCostFromResponse(response);
     } catch (error) {
       agent.status = 'error';
       this.sidebar.updateAgentList(this.teamManager.getAgents());
@@ -835,6 +845,74 @@ class AgentTeamsTUI {
 
   escapeContent(content) {
     return content.replace(/\{/g, '{{').replace(/\}/g, '}}');
+  }
+
+  // Strip the token/cost footer appended by grok-api.js and return [cleanContent, cost]
+  stripTokenFooter(response) {
+    const footerMatch = response.match(/\n\n---\nTokens: (\d+) \((\d+) in, (\d+) out\)\nCost: \$([\d.]+)$/);
+    if (footerMatch) {
+      const clean = response.slice(0, footerMatch.index);
+      const cost = parseFloat(footerMatch[4]);
+      return [clean, cost];
+    }
+    return [response, 0];
+  }
+
+  // Convert basic markdown to blessed tags for readable output
+  formatForChat(text) {
+    let inCodeBlock = false;
+    const lines = text.split('\n');
+    const result = [];
+
+    for (let line of lines) {
+      // Code block fences
+      if (line.trimStart().startsWith('```')) {
+        inCodeBlock = !inCodeBlock;
+        if (inCodeBlock) {
+          const lang = line.trimStart().slice(3).trim();
+          result.push(`{gray-fg}${'─'.repeat(40)} ${lang}{/}`);
+        } else {
+          result.push(`{gray-fg}${'─'.repeat(40)}{/}`);
+        }
+        continue;
+      }
+
+      if (inCodeBlock) {
+        result.push(`{gray-fg}  ${this.escapeContent(line)}{/}`);
+        continue;
+      }
+
+      // Headers
+      if (line.startsWith('### ')) {
+        result.push(`{bold}{white-fg}${this.escapeContent(line.slice(4))}{/}`);
+        continue;
+      }
+      if (line.startsWith('## ')) {
+        result.push(`{bold}{cyan-fg}${this.escapeContent(line.slice(3))}{/}`);
+        continue;
+      }
+      if (line.startsWith('# ')) {
+        result.push(`{bold}{cyan-fg}${this.escapeContent(line.slice(2))}{/}`);
+        continue;
+      }
+
+      // Bullet points
+      if (line.match(/^\s*[-*]\s/)) {
+        const escaped = this.escapeContent(line);
+        result.push(escaped);
+        continue;
+      }
+
+      // Inline bold **text** → blessed bold
+      let escaped = this.escapeContent(line);
+      escaped = escaped.replace(/\*\*(.+?)\*\*/g, '{bold}$1{/}');
+      // Inline code `text` → gray
+      escaped = escaped.replace(/`([^`]+)`/g, '{gray-fg}$1{/}');
+
+      result.push(escaped);
+    }
+
+    return result;
   }
 
   render() {
