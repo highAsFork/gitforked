@@ -157,6 +157,49 @@ export const Theme = {
     bg: '#00CED1'  // Teal blue background
   },
 
+  // Agent sidebar
+  agentSidebar: {
+    bg: '#000000',
+    fg: '#FFFFFF',
+    border: {
+      type: 'line',
+      fg: '#00CED1'
+    },
+    selected: {
+      bg: '#00CED1',
+      fg: '#000000',
+      bold: true
+    },
+    teamChannel: {
+      fg: '#00CED1',
+      bold: true
+    },
+    agentIdle: '#51CF66',
+    agentThinking: '#FFD700',
+    agentError: '#FF6B6B'
+  },
+
+  // Team channel
+  teamChannel: {
+    bg: '#000000',
+    fg: '#FFFFFF',
+    border: {
+      type: 'line',
+      fg: '#00CED1'
+    },
+    agentColors: [
+      '#00CED1', // Teal
+      '#51CF66', // Green
+      '#FFD700', // Gold
+      '#FF6B6B', // Red
+      '#DDA0DD', // Plum
+      '#87CEEB', // Sky blue
+      '#FFA500', // Orange
+      '#98FB98', // Pale green
+      '#FF69B4'  // Hot pink
+    ]
+  },
+
   // Border styles
   border: {
     fg: '#00CED1',

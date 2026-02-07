@@ -173,6 +173,80 @@ gitforked code format --code "const x=10; const y=20; console.log( x + y )" --la
 gitforked code format --code "def add(a,b): return a+b" --language python
 ```
 
+## Agent Teams
+
+### Launch Agent Teams TUI
+```bash
+# Start Agent Teams mode
+gitforked chat --teams
+```
+
+### Team Management (CLI)
+```bash
+# List saved teams
+gitforked team list
+
+# Create a new team
+gitforked team create --name "Code Review Squad"
+
+# Show team details
+gitforked team show --name "Code Review Squad"
+
+# Delete a team
+gitforked team delete --name "Code Review Squad"
+```
+
+### Team Management (TUI Commands)
+```bash
+# Inside the Agent Teams TUI:
+/team create My Security Team
+/team save
+/team list
+/team load My Security Team
+/team delete Old Team
+```
+
+### Agent Management (TUI Commands)
+```bash
+# Inside the Agent Teams TUI:
+/agent add          # Opens add agent dialog
+/agent list         # Show all agents with status
+/agent edit <id>    # Edit an agent
+/agent remove <id>  # Remove an agent
+```
+
+### Ollama Integration
+```bash
+# Inside the Agent Teams TUI:
+/ollama status      # Check if Ollama is running
+/ollama models      # List available local models
+```
+
+### Example: Multi-Agent Code Review Team
+
+1. Launch: `gitforked chat --teams`
+2. Press `Ctrl+T` → Create new team "Review Squad"
+3. Press `Ctrl+A` → Add agent:
+   - Name: ReviewBot, Role: Code Reviewer, Provider: grok, Model: grok-4-1-fast-reasoning
+4. Press `Ctrl+A` → Add agent:
+   - Name: SecBot, Role: Security Analyst, Provider: claude, Model: claude-sonnet-4-5-20250929
+5. Press `Ctrl+A` → Add agent:
+   - Name: DocBot, Role: Documentation Writer, Provider: groq, Model: llama-3.3-70b-versatile
+6. Type a message in Team Channel — all agents respond sequentially with shared context
+7. Press `1` to DM ReviewBot directly, `2` for SecBot, `0` for Team Channel
+
+### Example: Local-Only Team with Ollama
+```bash
+# Make sure Ollama is running with models pulled
+ollama pull llama3.2
+ollama pull codellama
+
+# Launch Agent Teams
+gitforked chat --teams
+
+# Add agents using the Ollama provider — models auto-discovered
+```
+
 ## Model Management
 
 ### Model Operations

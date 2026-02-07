@@ -1,6 +1,6 @@
 {
   "name": "gitforked",
-  "version": "0.69.0-beta",
+  "version": "0.69.1",
   "description": "A Grok-powered CLI for developers who give a fork",
   "type": "module",
   "main": "src/index.js",

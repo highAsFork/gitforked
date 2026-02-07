@@ -35,9 +35,35 @@ program
   .option('-d, --directory <directory>', 'Specify the working directory', process.cwd())
   .option('-v, --verbose', 'Enable verbose logging')
   .option('-t, --tui', 'Use Terminal User Interface mode')
+  .option('-a, --teams', 'Launch Agent Teams TUI mode')
   .action(async (options) => {
     try {
-      // Validate API key
+      // Agent Teams TUI mode (bypass single-provider API key check)
+      if (options.teams) {
+        const isTTY = process.stdout.isTTY;
+        const cols = process.stdout.columns || 0;
+        const rows = process.stdout.rows || 0;
+
+        if (!isTTY) {
+          console.log('Agent Teams TUI requires a TTY terminal.');
+          return;
+        }
+        if (cols < 100 || rows < 24) {
+          console.log(`Terminal too small for Agent Teams. Minimum 100x24 required (current: ${cols}x${rows}).`);
+          return;
+        }
+
+        try {
+          const { runAgentTeamsTUI } = await import('../ui/agent-teams-tui.js');
+          await runAgentTeamsTUI(options);
+          return;
+        } catch (error) {
+          console.log(`Agent Teams TUI failed: ${error.message}`);
+          return;
+        }
+      }
+
+      // Validate API key for standard modes
       if (!process.env.GROK_API_KEY && !config.getApiKey()) {
         console.log('❌ Grok API key not found. Please set GROK_API_KEY environment variable or configure it.');
         console.log('Run: export GROK_API_KEY=your_api_key');
@@ -302,9 +328,69 @@ program
     }
   });
 
+// Team management command
+program
+  .command('team <operation>')
+  .description('Agent team management (list, create, delete, show)')
+  .option('-n, --name <name>', 'Team name')
+  .action(async (operation, options) => {
+    try {
+      const { TeamManager } = await import('../lib/team-manager.js');
+      const tm = new TeamManager();
+
+      switch (operation) {
+        case 'list': {
+          const teams = tm.listTeams();
+          if (teams.length === 0) {
+            console.log('No saved teams. Use "gitforked chat --teams" to create one.');
+          } else {
+            console.log('Saved Teams:');
+            for (const t of teams) {
+              console.log(`  ${t.name} - ${t.agentCount} agents (updated: ${t.updatedAt || 'unknown'})`);
+            }
+          }
+          break;
+        }
+        case 'create': {
+          const name = options.name || 'Untitled';
+          tm.createTeam(name);
+          tm.saveTeam();
+          console.log(`Team "${name}" created and saved.`);
+          break;
+        }
+        case 'delete': {
+          if (!options.name) {
+            console.log('Please specify --name <teamname>');
+            return;
+          }
+          tm.deleteTeam(options.name);
+          console.log(`Team "${options.name}" deleted.`);
+          break;
+        }
+        case 'show': {
+          if (!options.name) {
+            console.log('Please specify --name <teamname>');
+            return;
+          }
+          const team = tm.loadTeam(options.name);
+          console.log(`Team: ${team.name}`);
+          console.log(`Agents: ${team.agents.length}`);
+          for (const a of team.agents) {
+            console.log(`  - ${a.name} (${a.role || 'no role'}) [${a.provider}/${a.model}]`);
+          }
+          break;
+        }
+        default:
+          console.log('Unknown operation. Available: list, create, delete, show');
+      }
+    } catch (error) {
+      console.log(`Error: ${error.message}`);
+    }
+  });
+
 // Handle unknown commands
 program.on('command:*', () => {
-  console.log('❌ Invalid command');
+  console.log('Invalid command');
   program.outputHelp();
 });
 

@@ -4,7 +4,7 @@ import os from 'os';
 
 class Config {
   constructor() {
-    this.configPath = path.join(os.homedir(), '.gitforked', 'config.json');
+    this.configPath = path.join(os.homedir(), '.opengrok', 'config.json');
     this.ensureConfigDir();
     this.loadConfig();
   }
@@ -26,9 +26,11 @@ class Config {
           grok: process.env.GROK_API_KEY || '',
           groq: process.env.GROQ_API_KEY || '',
           gemini: process.env.GEMINI_API_KEY || '',
-          claude: process.env.CLAUDE_API_KEY || ''
+          claude: process.env.CLAUDE_API_KEY || '',
+          ollama: 'local'
         },
-        model: 'grok-4-1-fast-reasoning'
+        model: 'grok-4-1-fast-reasoning',
+        ollamaBaseUrl: 'http://localhost:11434'
       };
       this.saveConfig();
     }
@@ -71,6 +73,15 @@ class Config {
 
   setModel(model) {
     this.config.model = model;
+    this.saveConfig();
+  }
+
+  getOllamaBaseUrl() {
+    return this.config.ollamaBaseUrl || 'http://localhost:11434';
+  }
+
+  setOllamaBaseUrl(url) {
+    this.config.ollamaBaseUrl = url;
     this.saveConfig();
   }
 

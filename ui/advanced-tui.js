@@ -39,6 +39,49 @@ const PERMISSION_TYPES = {
   DELETE: 'delete'
 };
 
+// Available models by provider (opencode-inspired)
+const AVAILABLE_MODELS = {
+  xai: [
+    'grok-4-1-fast-reasoning',
+    'grok-4-1-fast-non-reasoning',
+    'grok-4-latest',
+    'grok-4',
+    'grok-3-latest',
+    'grok-3-fast',
+    'grok-3-mini',
+    'grok-3-mini-fast',
+    'grok-beta',
+    'grok-vision-beta'
+  ],
+  anthropic: [
+    'claude-opus-4-6',
+    'claude-opus-4-5-20251101',
+    'claude-sonnet-4-5-20250929',
+    'claude-haiku-4-5-20251001'
+  ],
+  groq: [
+    'llama-3.3-70b-versatile',
+    'llama-3.1-8b-instant',
+    'mixtral-8x7b-32768',
+    'gemma2-9b-it'
+  ],
+  google: [
+    'gemini-2.0-flash',
+    'gemini-1.5-pro',
+    'gemini-1.5-flash'
+  ],
+  ollama: [] // Populated dynamically via OllamaProvider
+};
+
+// Map provider aliases to config keys
+const PROVIDER_MAP = {
+  xai: 'grok',
+  anthropic: 'claude',
+  groq: 'groq',
+  google: 'gemini',
+  ollama: 'ollama'
+};
+
 // Easter egg spinner messages
 const SPINNER_MESSAGES = [
   // Idiocracy refs
@@ -920,10 +963,116 @@ export class AdvancedTUI {
       case 'todo':
         this.manageTodos(args);
         break;
+      case 'models':
+        this.listModels(args[0]);
+        break;
+      case 'switch':
+        await this.switchModel(args[0]);
+        break;
+      case 'provider':
+        if (args[0]) {
+          await this.switchProvider(args[0]);
+        } else {
+          this.addSystemMessage(`Current provider: ${this.provider}`);
+        }
+        break;
       default:
         this.addSystemMessage(`Unknown command: ${command}`);
     }
     this.render();
+  }
+
+  listModels(filterProvider) {
+    this.chatPanel.log('{bold}{cyan-fg}═══ Available Models ═══{/}');
+    this.chatPanel.log('');
+
+    const providers = filterProvider ? [filterProvider] : Object.keys(AVAILABLE_MODELS);
+
+    for (const provider of providers) {
+      if (!AVAILABLE_MODELS[provider]) {
+        this.addSystemMessage(`Unknown provider: ${provider}`);
+        continue;
+      }
+
+      const configKey = PROVIDER_MAP[provider];
+      const hasKey = config.getApiKey(configKey) ? '{green-fg}✓{/}' : '{red-fg}✗{/}';
+      const isCurrent = this.provider === configKey ? '{yellow-fg}(active){/}' : '';
+
+      this.chatPanel.log(`{bold}{cyan-fg}${provider}{/} ${hasKey} ${isCurrent}`);
+
+      for (const model of AVAILABLE_MODELS[provider]) {
+        const isActive = this.model === model ? '{yellow-fg}► {/}' : '  ';
+        this.chatPanel.log(`${isActive}{white-fg}${provider}/${model}{/}`);
+      }
+      this.chatPanel.log('');
+    }
+
+    this.chatPanel.log('{gray-fg}Usage: /switch provider/model{/}');
+    this.chatPanel.log('{gray-fg}Example: /switch xai/grok-4-1-fast-reasoning{/}');
+    this.chatPanel.log('');
+  }
+
+  async switchModel(input) {
+    if (!input || !input.includes('/')) {
+      this.addSystemMessage('Usage: /switch provider/model');
+      this.addSystemMessage('Example: /switch xai/grok-4-1-fast-reasoning');
+      this.addSystemMessage('Run /models to see available options');
+      return;
+    }
+
+    const [providerAlias, ...modelParts] = input.split('/');
+    const model = modelParts.join('/');
+
+    if (!AVAILABLE_MODELS[providerAlias]) {
+      this.addSystemMessage(`Unknown provider: ${providerAlias}`);
+      this.addSystemMessage(`Available: ${Object.keys(AVAILABLE_MODELS).join(', ')}`);
+      return;
+    }
+
+    if (!AVAILABLE_MODELS[providerAlias].includes(model)) {
+      this.addSystemMessage(`Unknown model: ${model}`);
+      this.addSystemMessage(`Run /models ${providerAlias} to see available models`);
+      return;
+    }
+
+    const configKey = PROVIDER_MAP[providerAlias];
+
+    // Check if API key is set
+    if (!config.getApiKey(configKey)) {
+      this.addSystemMessage(`{red-fg}No API key set for ${providerAlias}{/}`);
+      this.addSystemMessage(`Set it in ~/.gitforked/config.json`);
+      return;
+    }
+
+    // Update provider and model
+    this.provider = configKey;
+    this.model = model;
+    config.setProvider(configKey);
+    config.setModel(model);
+
+    // Reinitialize API client with new provider
+    grokAPI.provider = configKey;
+    grokAPI.setupClient();
+
+    this.updateHeader();
+    this.addSystemMessage(`{green-fg}Switched to ${providerAlias}/${model}{/}`);
+  }
+
+  async switchProvider(providerAlias) {
+    const configKey = PROVIDER_MAP[providerAlias] || providerAlias;
+
+    if (!config.getApiKey(configKey)) {
+      this.addSystemMessage(`{red-fg}No API key set for ${providerAlias}{/}`);
+      return;
+    }
+
+    this.provider = configKey;
+    config.setProvider(configKey);
+    grokAPI.provider = configKey;
+    grokAPI.setupClient();
+
+    this.updateHeader();
+    this.addSystemMessage(`{green-fg}Switched to provider: ${configKey}{/}`);
   }
 
   async handleGitCommand(args) {
@@ -1200,6 +1349,16 @@ export class AdvancedTUI {
     this.chatPanel.log('  {cyan-fg}/todo add <text>{/}   Add a task');
     this.chatPanel.log('  {cyan-fg}/todo list{/}         List all tasks');
     this.chatPanel.log('  {cyan-fg}/todo done <n>{/}     Mark task n as complete');
+    this.chatPanel.log('');
+    this.chatPanel.log('{bold}Model Switching:{/}');
+    this.chatPanel.log('  {cyan-fg}/models{/}            List all available models');
+    this.chatPanel.log('  {cyan-fg}/models <provider>{/} List models for a provider');
+    this.chatPanel.log('  {cyan-fg}/switch <p/m>{/}      Switch to provider/model');
+    this.chatPanel.log('  {cyan-fg}/provider{/}          Show current provider');
+    this.chatPanel.log('');
+    this.chatPanel.log('{bold}Examples:{/}');
+    this.chatPanel.log('  {gray-fg}/switch xai/grok-4-1-fast-reasoning{/}');
+    this.chatPanel.log('  {gray-fg}/switch anthropic/claude-opus-4-6{/}');
     this.chatPanel.log('');
     this.chatPanel.log('{bold}Modes:{/}');
     this.chatPanel.log('  {yellow-fg}PLAN{/}   Agent analyzes and plans before acting');
