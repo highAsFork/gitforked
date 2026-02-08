@@ -254,7 +254,22 @@ program
           const allConfig = config.list();
           console.log('📋 Configuration:');
           Object.entries(allConfig).forEach(([key, value]) => {
-            console.log(`${key}: ${value}`);
+            // Mask sensitive values (API keys, tokens, secrets)
+            if (typeof value === 'object' && value !== null) {
+              const masked = {};
+              for (const [k, v] of Object.entries(value)) {
+                if (/key|api|token|secret/i.test(k) && typeof v === 'string' && v.length > 4) {
+                  masked[k] = v.slice(0, 4) + '****' + v.slice(-4);
+                } else {
+                  masked[k] = v;
+                }
+              }
+              console.log(`${key}: ${JSON.stringify(masked)}`);
+            } else if (/key|api|token|secret/i.test(key) && typeof value === 'string' && value.length > 4) {
+              console.log(`${key}: ${value.slice(0, 4)}****${value.slice(-4)}`);
+            } else {
+              console.log(`${key}: ${value}`);
+            }
           });
           break;
         default:

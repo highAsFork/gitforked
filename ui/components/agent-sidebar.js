@@ -78,6 +78,7 @@ class AgentSidebar extends EventEmitter {
     switch (status) {
       case 'idle': return '{green-fg}o{/}';
       case 'thinking': return '{yellow-fg}*{/}';
+      case 'tool': return '{cyan-fg}>{/}';
       case 'error': return '{red-fg}!{/}';
       default: return '{gray-fg}o{/}';
     }

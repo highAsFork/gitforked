@@ -14,7 +14,7 @@ class TeamSetupDialog extends EventEmitter {
       top: 'center',
       left: 'center',
       width: '50%',
-      height: 14,
+      height: 16,
       border: { type: 'line', fg: 'cyan' },
       style: { bg: 'black', fg: 'white', border: { fg: 'cyan' } },
       label: ' Team Management ',
@@ -40,7 +40,7 @@ class TeamSetupDialog extends EventEmitter {
       top: 2,
       left: 1,
       width: '100%-4',
-      height: 7,
+      height: 9,
       style: {
         bg: 'black',
         fg: 'white',
@@ -129,11 +129,12 @@ class TeamSetupDialog extends EventEmitter {
   handleMenuSelect(index) {
     if (this.mode === 'menu') {
       switch (index) {
-        case 0: this.showCreateInput(); break;
-        case 1: this.showLoadList(); break;
-        case 2: this.handleSave(); break;
-        case 3: this.showDeleteList(); break;
-        case 4: this.hide(); break;
+        case 0: this.handleQuickStart(); break;
+        case 1: this.showCreateInput(); break;
+        case 2: this.showLoadList(); break;
+        case 3: this.handleSave(); break;
+        case 4: this.showDeleteList(); break;
+        case 5: this.hide(); break;
       }
     } else if (this.mode === 'load') {
       const teams = this.teamManager.listTeams();
@@ -160,6 +161,7 @@ class TeamSetupDialog extends EventEmitter {
     this.menuList.show();
     this.header.setContent('{bold}{cyan-fg}Choose an option:{/}');
     this.menuList.setItems([
+      '{cyan-fg}Quick start (default team){/}',
       'Create new team',
       'Load existing team',
       'Save current team',
@@ -213,6 +215,11 @@ class TeamSetupDialog extends EventEmitter {
     this.menuList.select(0);
     this.menuList.focus();
     this.screen.render();
+  }
+
+  handleQuickStart() {
+    this.emit('quick-start');
+    this.hide();
   }
 
   handleSave() {

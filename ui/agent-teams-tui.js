@@ -287,6 +287,24 @@ class AgentTeamsTUI {
     });
 
     // Team setup dialog events
+    this.teamSetupDialog.on('quick-start', () => {
+      try {
+        this.teamManager.createTeamWithDefaults('Default Team');
+        this.teamChannel = new TeamChannel(this.teamManager);
+        this.setupTeamChannelEvents();
+        this.updateHeader();
+        this.sidebar.updateAgentList(this.teamManager.getAgents());
+        const agents = this.teamManager.getAgents();
+        this.addSystemMessage(`Default team created with ${agents.length} agents:`);
+        for (const a of agents) {
+          this.addSystemMessage(`  ${a.name} — ${a.role} (${a.provider}/${a.model})`);
+        }
+      } catch (err) {
+        this.addSystemMessage(`Error creating default team: ${err.message}`);
+      }
+      this._focusInput();
+    });
+
     this.teamSetupDialog.on('create-team', (name) => {
       this.teamManager.createTeam(name);
       this.teamChannel = new TeamChannel(this.teamManager);
@@ -421,6 +439,18 @@ class AgentTeamsTUI {
       }
       this.render();
     });
+
+    this.teamChannel.on('agent-tool-call', (agent, toolName, args) => {
+      const summary = this.formatToolSummary(toolName, args);
+      this.chatPanel.log(`  {gray-fg}[${toolName}]{/} ${summary}`);
+      this.currentSpinnerMessage = `${agent.name}: ${toolName}...`;
+      this.sidebar.updateAgentList(this.teamManager.getAgents());
+      this.render();
+    });
+
+    this.teamChannel.on('agent-tool-result', (agent, toolName, success) => {
+      this.sidebar.updateAgentList(this.teamManager.getAgents());
+    });
   }
 
   getAgentColorIndex(agent) {
@@ -429,16 +459,41 @@ class AgentTeamsTUI {
     return idx >= 0 ? idx % AGENT_COLORS.length : 0;
   }
 
+  formatToolSummary(toolName, args) {
+    switch (toolName) {
+      case 'bash': return `$ ${(args.command || '').slice(0, 60)}`;
+      case 'read': return args.filePath || '';
+      case 'write': return args.filePath || '';
+      case 'edit': return args.filePath || '';
+      case 'glob': return args.pattern || '';
+      case 'grep': return `/${(args.pattern || '').slice(0, 40)}/`;
+      default: return '';
+    }
+  }
+
   updateHeader() {
     const teamName = this.teamManager.getTeamName() || '(none)';
     const agentCount = this.teamManager.getAgents().length;
 
-    this.headerBar.setContent(
+    // Collect tool call count from agents' sandbox stats
+    let toolCallCount = 0;
+    for (const agent of this.teamManager.getAgents()) {
+      if (agent.grokAPI?.sandbox) {
+        toolCallCount += agent.grokAPI.sandbox.getStats().totalCalls;
+      }
+    }
+
+    let headerContent =
       ` {bold}{cyan-fg}gitforked Agent Teams{/} | ` +
       `Team: {white-fg}${teamName}{/} | ` +
       `{white-fg}${agentCount}{/} agents | ` +
-      `Cost: {green-fg}$${this.totalCost.toFixed(4)}{/}`
-    );
+      `Cost: {green-fg}$${this.totalCost.toFixed(4)}{/}`;
+
+    if (toolCallCount > 0) {
+      headerContent += ` | Tools: {cyan-fg}${toolCallCount}{/}`;
+    }
+
+    this.headerBar.setContent(headerContent);
   }
 
   updateInputLabel() {
@@ -568,7 +623,15 @@ class AgentTeamsTUI {
 
       const response = await agent.sendMessage(input, {
         directory: this.currentDir,
-        includeHistory: true
+        mode: 'build',
+        includeHistory: true,
+        safeMode: true,
+        onToolCall: (name, args) => {
+          this.chatPanel.log(`  {gray-fg}[${name}]{/} ${this.formatToolSummary(name, args)}`);
+          this.render();
+        },
+        onToolResult: () => {},
+        onPermissionRequired: async () => true
       });
 
       agent.status = 'idle';

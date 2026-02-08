@@ -60,20 +60,24 @@ describe('TeamChannel', function() {
       const mockAgent = { id: 'agent-2', name: 'SecBot', role: 'Security' };
       const prompt = channel.buildContextPrompt('Review this code', mockAgent);
 
-      expect(prompt).to.include('== Team Collaboration Context ==');
-      expect(prompt).to.include('[You]: Review this code');
-      expect(prompt).to.include('[ReviewBot (Code Reviewer)]: The code looks good.');
-      expect(prompt).to.include('== Your Task ==');
-      expect(prompt).to.include('As SecBot (Security)');
+      expect(prompt).to.include('== USER REQUEST ==');
+      expect(prompt).to.include('Review this code');
+      expect(prompt).to.include('== TEAMMATE RESPONSES');
+      expect(prompt).to.include('ReviewBot (Code Reviewer)');
+      expect(prompt).to.include('The code looks good.');
+      expect(prompt).to.include('== YOUR ASSIGNMENT ==');
+      expect(prompt).to.include('You are SecBot (Security)');
     });
 
     it('should handle empty shared messages', function() {
       const mockAgent = { name: 'Bot', role: 'Helper' };
       const prompt = channel.buildContextPrompt('Hello', mockAgent);
 
-      expect(prompt).to.include('== Team Collaboration Context ==');
-      expect(prompt).to.include('== Your Task ==');
-      expect(prompt).to.include('As Bot (Helper)');
+      expect(prompt).to.include('== USER REQUEST ==');
+      expect(prompt).to.include('Hello');
+      expect(prompt).to.include('== YOUR ASSIGNMENT ==');
+      expect(prompt).to.include('You are Bot (Helper)');
+      expect(prompt).to.include('You go FIRST');
     });
   });
 
